@@ -1,5 +1,7 @@
-#有序表的二分查找
+# 有序表的二分查找
 import numpy
+
+
 def Binary_search(list, value):
     low = 0
     high = len(list)
@@ -15,9 +17,10 @@ def Binary_search(list, value):
     print('无法找到查找的值！！！')
     return False
 
-#随机数生成一个列表
+
+# 随机数生成一个列表
 list = numpy.random.randint(2, 20, size = 10)
 list.sort()
 print(list)
 value = numpy.random.randint(20)
-Binary_search(list,value)
+Binary_search(list, value)
