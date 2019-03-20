@@ -5,6 +5,8 @@ from .forms import NameForm
 from .. import db
 from ..email import *
 from flask_mail import Mail
+from flask import Flask,session,redirect,url_for
+from ..models import User
 
 app = Flask(__name__)
 mail = Mail(app)

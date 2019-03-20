@@ -1,6 +1,9 @@
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash,check_password_hash      #计算密码散列值
+from flask_login import UserMixin
+from . import login_manager
 
 # 配置数据库
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -22,11 +25,41 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 
-class User(db.Model):
+class User(UserMixin,db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key = True)
+    email=db.Column(db.String(64),unique=True,index=True)
     username = db.Column(db.String(64), unique = True, index = True)
+    password_hash = db.Column(db.String(128))  # 加入密码散列
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))  # 定义外键
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute')
+
+    @password.setter
+    def password(self,password):
+        self.password_hash=generate_password_hash(password)
+
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash.password)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+'''
+#密码散列功能测试
+u1=User()
+u1.password='cat'
+#print(u.password)
+print(u1.password_hash)
+print(u1.verify_password('cat'))
+print(u1.verify_password('dog'))
+u2=User()
+u2.password='cat'
+print(u2.password_hash)
+'''
