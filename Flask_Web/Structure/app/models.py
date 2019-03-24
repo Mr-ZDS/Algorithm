@@ -1,22 +1,13 @@
-import os
-import hashlib
-import bleach
-from flask import Flask,current_app,request
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash,check_password_hash      #计算密码散列值
-from flask_login import UserMixin,AnonymousUserMixin
-from . import login_manager,db
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
+import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from markdown import markdown
-
-
-# 配置数据库
-basedir = os.path.abspath(os.path.dirname(__file__))
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # 此键设置为False，一边在不需要跟踪对象变化时降低内存消耗
-db = SQLAlchemy(app)
+import bleach
+from flask import current_app, request, url_for
+from flask_login import UserMixin, AnonymousUserMixin
+from app.exceptions import ValidationError
+from . import db, login_manager
 
 
 #权限常量
@@ -81,6 +72,14 @@ class Role(db.Model):
         return '<Role %r>' % self.name
 
 
+#关系中关联表的模型实现
+class Follow(db.Model):
+    __tablename__='follows'
+    follower_id=db.Column(db.Integer,db.ForeignKey('users.id'),primary_key = True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'),primary_key = True)
+    timestamp = db.Column(db.DateTime, default = datetime.utcnow)
+
+
 class User(UserMixin,db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key = True)
@@ -96,6 +95,15 @@ class User(UserMixin,db.Model):
     last_seen = db.Column(db.DateTime(), default = datetime.utcnow)
     avatar_hash=db.Column(db.String(32))
     posts=db.relationship('Post',backref='author',lazy='dynamic')
+    comments=db.relationship('Comment',backref='author',lazy='dynamic')      #users和comments表之间的一对多关系
+    followed = db.relationship('Follow',
+                               foreign_keys = [Follow.follower_id],
+                               backref = db.backref('follower', lazy = 'joined'),
+                               lazy = 'dynamic',cascade = 'all, delete-orphan')
+    followers = db.relationship('Follow',
+                                foreign_keys = [Follow.followed_id],
+                                backref = db.backref('followed', lazy = 'joined'),
+                                lazy = 'dynamic',cascade = 'all, delete-orphan')
 
 
     #定义默认的用户角色
@@ -108,6 +116,7 @@ class User(UserMixin,db.Model):
                 self.role = Role.query.filter_by(default = True).first()
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash=self.gravatar_hash()
+        self.follow(self)
 
 
     @property
@@ -182,6 +191,30 @@ class User(UserMixin,db.Model):
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
             url = url, hash = hash, size = size, default = default, rating = rating)
 
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower = self, followed = user)
+            db.session.add(f)
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id = user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        if user.id is None:
+            return False
+        return self.followed.filter_by(followed_id = user.id).first() is not None
+
+    def is_followed_by(self, user):
+        if user.id is None:
+            return False
+        return self.followers.filter_by(follower_id = user.id).first() is not None
+
+    #此方法定义为属性，调用时无需加（）
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow,Follow.followed_id==Post.author_id).filter(Follow.followed_id==self.id)
 
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
@@ -203,6 +236,15 @@ class Post(db.Model):
     timestamp=db.Column(db.DateTime,index = True,default = datetime.utcnow)
     author_id=db.Column(db.Integer,db.ForeignKey('users.id'))
     body_html=db.Column(db.Text)
+    comments=db.relationship('Comment',backref='post',lazy='dynamic')
+
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
 
     @staticmethod
     def on_changed_body(target,value,oldvalue,initiator):
@@ -214,6 +256,25 @@ class Post(db.Model):
             tags = allowed_tags, strip = True))
 
 db.event.listen(Post.body, 'set', Post.on_changed_body)
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key = True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index = True, default = datetime.utcnow)
+    disabled = db.Column(db.Boolean)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i','strong']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format = 'html'),
+            tags = allowed_tags, strip = True))
+
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 
 

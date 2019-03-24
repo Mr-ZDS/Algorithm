@@ -39,6 +39,7 @@ def index():
         db.session.commit()
         return redirect(url_for('.index'))
     page = request.args.get('page', 1, type=int)
+    #显示所有博客文章或只显示所关注用户的文章
     show_followed = False
     if current_user.is_authenticated:
         show_followed = bool(request.cookies.get('show_followed', ''))
@@ -235,7 +236,7 @@ def show_followed():
     resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
     return resp
 
-
+#管理评论的路由
 @main.route('/moderate')
 @login_required
 @permission_required(Permission.MODERATE)
