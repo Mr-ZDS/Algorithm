@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, TextAreaField, BooleanField, SelectField,\
+from wtforms import StringField, TextAreaField, BooleanField, SelectField, \
     SubmitField
 from wtforms.validators import DataRequired, Length, Email, Regexp
 from flask_pagedown.fields import PageDownField
@@ -11,17 +11,18 @@ class NameForm(FlaskForm):
     name = StringField('What is your name?', validators = [DataRequired()])
     submit = SubmitField('Submit')
 
-#用户的资料编辑表单
+
+# 用户的资料编辑表单
 class EditProfileForm(FlaskForm):
-    name = StringField('Real name', validators=[Length(0, 64)])
-    location = StringField('Location', validators=[Length(0, 64)])
+    name = StringField('Real name', validators = [Length(0, 64)])
+    location = StringField('Location', validators = [Length(0, 64)])
     about_me = TextAreaField('About me')
     submit = SubmitField('Submit')
 
 
-#管理员使用的资料编辑表单
+# 管理员使用的资料编辑表单
 class EditProfileAdminForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Length(1, 64),Email()])
+    email = StringField('Email', validators = [DataRequired(), Length(1, 64), Email()])
     username = StringField('Username', validators = [DataRequired(), Length(1, 64),
                                                      Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
                                                             'Usernames must have only letters, numbers, dots or '
@@ -36,7 +37,7 @@ class EditProfileAdminForm(FlaskForm):
     def __init__(self, user, *args, **kwargs):
         super(EditProfileAdminForm, self).__init__(*args, **kwargs)
         self.role.choices = [(role.id, role.name)
-                         for role in Role.query.order_by(Role.name).all()]
+                             for role in Role.query.order_by(Role.name).all()]
         self.user = user
 
     def validate_email(self, field):
@@ -48,13 +49,13 @@ class EditProfileAdminForm(FlaskForm):
             raise ValidationError('Username already in use.')
 
 
-#博客文章表单
+# 博客文章表单
 class PostForm(FlaskForm):
-    body = PageDownField("What's on your mind?", validators=[DataRequired()])
+    body = PageDownField("What's on your mind?", validators = [DataRequired()])
     submit = SubmitField('Submit')
 
 
-#评论输入表单
+# 评论输入表单
 class CommentForm(FlaskForm):
-    body=StringField('',validators = [DataRequired()])
-    submit=SubmitField('Submit')
+    body = StringField('', validators = [DataRequired()])
+    submit = SubmitField('Submit')

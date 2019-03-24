@@ -12,9 +12,9 @@ bootstrap = Bootstrap()
 mail = Mail()
 moment = Moment()
 db = SQLAlchemy()
-login_manager=LoginManager()
-login_manager.login_view='auth.login'
-pagedown=PageDown()
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
+pagedown = PageDown()
 
 
 def create_app(config_name):
@@ -33,9 +33,13 @@ def create_app(config_name):
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    #注册身份验证蓝本
+    # 注册身份验证蓝本
     from .auth import auth as auth_blueprint
-    app.register_blueprint(auth_blueprint,url_prefix='/auth')
+    app.register_blueprint(auth_blueprint, url_prefix = '/auth')
+
+    # 注册API蓝本
+    from .api import api as api_blueprint
+    app.register_blueprint(api_blueprint, url_prefix = '/api/v1')
 
     # 添加路由和自定义的错误页面
     return app
