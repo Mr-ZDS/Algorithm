@@ -58,6 +58,8 @@ class analysis:
                     self.list1.append(str_visit)
                     self.list2.append('数字')
                     break
+                elif ch=='.':       #判断浮点数
+                    str_visit+=ch
                 else:
                     self.list1.append(str_visit)
                     self.list2.append('数字')
