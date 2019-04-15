@@ -10,8 +10,8 @@ class Solution:
         r = result
         carry = 0
         while l1 or l2:
-            x= l1.val if l1 else 0
-            y= l2.val if l2 else 0
+            x = l1.val if l1 else 0
+            y = l2.val if l2 else 0
             s = carry + x + y
             carry = s // 10
             r.next = ListNode(s % 10)
