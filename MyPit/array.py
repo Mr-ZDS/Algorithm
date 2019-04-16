@@ -17,3 +17,8 @@ print(list1)
 
 
 list2 = list(set([tuple(t) for t in li]))  # 二维list去重
+
+
+#比较两个列表相等
+import operator
+operator.eq(list1,list2)
