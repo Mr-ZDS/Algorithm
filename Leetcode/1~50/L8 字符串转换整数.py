@@ -1,3 +1,4 @@
+'''
 class Solution:
     def myAtoi(self, str: str) -> int:
         visit = str.replace(' ', '')
@@ -21,3 +22,24 @@ class Solution:
             return (-2) ** 31
         else:
             return result
+'''
+
+def turn(nums):
+    s=""
+    nums=str(nums)
+    li=list(nums)
+    if li[0]=="-":
+        s+=li[0]
+        li.remove(li[0])
+    t = len(li) - 1
+    for i in range(len(li)-1,-1,-1):
+        if li[i]==0:
+            t-=1
+        else:
+            break
+    for i in range(t,-1,-1):
+        s+=li[i]
+    return(int(s))
+nums=-120
+print(turn(nums))
+
